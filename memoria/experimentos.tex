@@ -1,0 +1,11 @@
+\
+        \subsection*{Protocolo}
+        Compararemos FP32 vs INT8 (QSim) en validación y test. La latencia se mide como media y percentiles
+        (p50/p90) sobre $N$ repeticiones en la misma máquina. Se reporta tamaño del modelo en MB.
+
+        \subsection*{Ablaciones}
+        (i) per-tensor vs per-channel (pesos); (ii) simétrica vs asimétrica; (iii) percentil fijo vs SA;
+        (iv) con/sin fusión Conv+ReLU.
+
+        \subsection*{Resultados}
+        Incluya aquí tablas (\texttt{booktabs}) y figuras (\texttt{graphicx}) desde \texttt{../results/figuras/}.

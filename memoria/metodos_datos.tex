@@ -1,0 +1,12 @@
+\
+        \subsection*{Cuantización uniforme afín}
+        Dado un tensor real $x$, su cuantización $x_q$ a $b$ bits se define como:
+        \[ x_q = \mathrm{clip}\big(\mathrm{round}(x/s) + z,\; q_{\min}, q_{\max}\big), \quad
+           x \approx s \cdot (x_q - z) \]
+        con escala $s>0$ y punto cero $z$ entero. Consideramos variantes simétrica ($z=0$) y
+        asimétrica, y para pesos tanto por-tensor como por-canal.
+
+        \subsection*{Datos y arquitectura}
+        Usaremos MNIST o Fashion-MNIST y una red tipo LeNet-lite (dos convoluciones con
+        ReLU y MaxPool seguidas de dos capas lineales). Las activaciones se calibran con
+        estadísticas de validación.
