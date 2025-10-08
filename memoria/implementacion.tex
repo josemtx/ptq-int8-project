@@ -1,54 +1,53 @@
-\
-        \subsection*{Calibración de pesos (greedy por capa)}
-        \begin{algorithm}[H]
-        \caption{CALIBRATE\_WEIGHTS}
-        \begin{algorithmic}[1]
-        \Require Lista de capas $L$, datos de calibración $D_{cal}$
-        \For{cada capa $L_i$ con pesos}
-            \State $best \gets +\infty$
-            \For{$scheme \in \{\text{per\_tensor}, \text{per\_channel}\}$}
-                \For{$sym \in \{\text{True}, \text{False}\}$}
-                    \State $qW \gets \text{FIT\_WEIGHTS\_QPARAMS}(W_i, scheme, sym)$
-                    \State $err \gets \text{MSE}\big(L_i^{fp32}(D_{cal}), L_i^{qsim}(D_{cal}; qW)\big)$
-                    \If{$err < best$} \State $best \gets err$; guardar $qW$ \EndIf
-                \EndFor
-            \EndFor
-            \State Fijar $qW$ óptimos en $L_i$
+\subsection*{Calibración de pesos (greedy por capa)}
+\begin{algorithm}[H]
+\caption{CALIBRATE\_WEIGHTS}
+\begin{algorithmic}[1]
+\Require Lista de capas $L$, datos de calibración $D_{cal}$
+\For{cada capa $L_i$ con pesos}
+    \State $best \gets +\infty$
+    \For{$scheme \in \{\text{per\_tensor}, \text{per\_channel}\}$}
+        \For{$sym \in \{\text{True}, \text{False}\}$}
+            \State $qW \gets \text{FIT\_WEIGHTS\_QPARAMS}(W_i, scheme, sym)$
+            \State $err \gets \text{MSE}\big(L_i^{fp32}(D_{cal}), L_i^{qsim}(D_{cal}; qW)\big)$
+            \If{$err < best$} \State $best \gets err$; guardar $qW$ \EndIf
         \EndFor
-        \end{algorithmic}
-        \end{algorithm}
+    \EndFor
+    \State Fijar $qW$ óptimos en $L_i$
+\EndFor
+\end{algorithmic}
+\end{algorithm}
 
-        \subsection*{Calibración de activaciones (enfriamiento simulado)}
-        \begin{algorithm}[H]
-        \caption{CALIBRATE\_ACTS\_SA}
-        \begin{algorithmic}[1]
-        \Require Red $N$, $D_{cal}$, $D_{val}$, $\lambda$, $T_0$, $T_{min}$
-        \State $p \gets$ percentiles iniciales (p.\,ej., 99.0)
-        \State $best \gets \text{METRIC}(N,p,D_{val},\lambda)$
-        \State $curr \gets best$, $T \gets T_0$
-        \While{$T > T_{min}$}
-            \State $p' \gets \text{NEIGHBOR}(p)$ \Comment{ajuste por capa $\pm \Delta p$}
-            \State $m \gets \text{METRIC}(N,p',D_{val},\lambda)$
-            \If{$\text{ACCEPT}(m, curr, T)$} $curr \gets m$; $p \gets p'$ \EndIf
-            \If{$curr > best$} $best \gets curr$ \EndIf
-            \State $T \gets \text{COOL}(T)$
-        \EndWhile
-        \State Fijar $p$ óptimos en $N$
-        \end{algorithmic}
-        \end{algorithm}
+\subsection*{Calibración de activaciones (enfriamiento simulado)}
+\begin{algorithm}[H]
+\caption{CALIBRATE\_ACTS\_SA}
+\begin{algorithmic}[1]
+\Require Red $N$, $D_{cal}$, $D_{val}$, $\lambda$, $T_0$, $T_{min}$
+\State $p \gets$ percentiles iniciales (p.\,ej., 99.0)
+\State $best \gets \text{METRIC}(N,p,D_{val},\lambda)$
+\State $curr \gets best$, $T \gets T_0$
+\While{$T > T_{min}$}
+    \State $p' \gets \text{NEIGHBOR}(p)$ \Comment{ajuste por capa $\pm \Delta p$}
+    \State $m \gets \text{METRIC}(N,p',D_{val},\lambda)$
+    \If{$\text{ACCEPT}(m, curr, T)$} $curr \gets m$; $p \gets p'$ \EndIf
+    \If{$curr > best$} $best \gets curr$ \EndIf
+    \State $T \gets \text{COOL}(T)$
+\EndWhile
+\State Fijar $p$ óptimos en $N$
+\end{algorithmic}
+\end{algorithm}
 
-        \subsection*{Forward cuantizado con fusión Conv+ReLU}
-        \begin{algorithm}[H]
-        \caption{QSIM\_FORWARD}
-        \begin{algorithmic}[1]
-        \Require Red $N$, entrada $x$
-        \For{cada capa $L$ en $N$}
-            \State $(x_q,s_x,z_x) \gets \text{QUANTIZE}(x; qparams\_act_L)$
-            \State $y_{32} \gets \text{CONV\_INT8\_INT32}(x_q, w_q, z_x, z_w) + b_{32}$
-            \State $y_q \gets \text{REQUANTIZE}(y_{32}; s_x, s_w, s_y, z_y)$
-            \If{$L$ tiene ReLU} $y_q \gets \text{RELU\_INT8}(y_q, z_y)$ \EndIf
-            \State $x \gets \text{DEQUANTIZE}(y_q; s_y, z_y)$
-        \EndFor
-        \State \Return $x$
-        \end{algorithmic}
-        \end{algorithm}
+\subsection*{Forward cuantizado con fusión Conv+ReLU}
+\begin{algorithm}[H]
+\caption{QSIM\_FORWARD}
+\begin{algorithmic}[1]
+\Require Red $N$, entrada $x$
+\For{cada capa $L$ en $N$}
+    \State $(x_q,s_x,z_x) \gets \text{QUANTIZE}(x; qparams\_act_L)$
+    \State $y_{32} \gets \text{CONV\_INT8\_INT32}(x_q, w_q, z_x, z_w) + b_{32}$
+    \State $y_q \gets \text{REQUANTIZE}(y_{32}; s_x, s_w, s_y, z_y)$
+    \If{$L$ tiene ReLU} $y_q \gets \text{RELU\_INT8}(y_q, z_y)$ \EndIf
+    \State $x \gets \text{DEQUANTIZE}(y_q; s_y, z_y)$
+\EndFor
+\State \Return $x$
+\end{algorithmic}
+\end{algorithm}

@@ -1,9 +1,8 @@
-\
-        % 150--300 palabras. Rellena al final con los resultados reales.
-        En este trabajo estudiamos la cuantización post-entrenamiento (PTQ) a INT8
-        con ejecución simulada en NumPy sobre una CNN ligera tipo LeNet aplicada a MNIST/Fashion-MNIST.
-        Formulamos el problema como una optimización de latencia sujeta a una caída de accuracy
-        acotada (≤ 2\%). Presentamos una heurística en dos fases: (i) selección ávida de
-        esquemas de cuantización de pesos (per-tensor/per-channel, simétrica/asimétrica) minimizando MSE;
-        y (ii) ajuste de percentiles de activación mediante enfriamiento simulado.
-        Reportamos latencia p50/p90, tamaño del modelo y $\Delta$-accuracy respecto a FP32.
+% 150--300 palabras. Rellena al final con los resultados reales.
+En este trabajo estudiamos la cuantización post-entrenamiento (PTQ) a INT8
+con ejecución simulada en NumPy sobre una CNN ligera tipo LeNet aplicada a MNIST/Fashion-MNIST.
+Formulamos el problema como una optimización de latencia sujeta a una caída de accuracy
+acotada (≤ 2\%). Presentamos una heurística en dos fases: (i) selección ávida de
+esquemas de cuantización de pesos (per-tensor/per-channel, simétrica/asimétrica) minimizando MSE;
+y (ii) ajuste de percentiles de activación mediante enfriamiento simulado.
+Reportamos latencia p50/p90, tamaño del modelo y $\Delta$-accuracy respecto a FP32.
