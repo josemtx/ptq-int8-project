@@ -9,13 +9,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: xu-cheng/latex-action@v3
         with:
-          root_file: memoria/main.tex
+          fetch-depth: 0
+
+      - name: Debug - list memoria
+        run: |
+          pwd
+          ls -la
+          ls -la memoria
+          git rev-parse HEAD
+
+      - name: Build LaTeX (memoria/)
+        uses: xu-cheng/latex-action@v3
+        with:
+          working_directory: memoria
+          root_file: main.tex
           latexmk_use_lualatex: false
           latexmk_shell_escape: false
+
       - name: Upload PDF
         uses: actions/upload-artifact@v4
         with:
           name: memoria-pdf
           path: memoria/main.pdf
+
+      - name: Upload LaTeX logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: latex-logs
+          path: memoria/*.log
