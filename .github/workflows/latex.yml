@@ -1,0 +1,21 @@
+name: build-latex
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: xu-cheng/latex-action@v3
+        with:
+          root_file: memoria/main.tex
+          latexmk_use_lualatex: false
+          latexmk_shell_escape: false
+      - name: Upload PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: memoria-pdf
+          path: memoria/main.pdf
