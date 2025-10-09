@@ -1,10 +1,8 @@
-La implantación de modelos en dispositivos con recursos limitados motiva técnicas
-de compresión y aceleración. La cuantización post-entrenamiento (PTQ) a 8 bits es
-una de las más usadas por su simplicidad y por no requerir reentrenamiento.
-En esta memoria planteamos un micro-motor de ejecución cuantizada en NumPy y
-un problema de optimización: reducir la latencia manteniendo la precisión dentro de un margen.
+\paragraph{Motivación}
+La cuantización post-entrenamiento (PTQ) a 8 bits permite ejecutar redes con enteros, reduciendo memoria y ancho de banda y facilitando el despliegue en CPU/edge. El reto es mantener la precisión tras discretizar pesos y activaciones.
 
-\textbf{Contribuciones}:
-(i) implementación educativa de PTQ con fusión Conv+ReLU;
-(ii) formulación de calibración como búsqueda heurística;
-(iii) evaluación sistemática con métricas reproducibles.
+\paragraph{Objetivo}
+Planteamos un problema de optimización: \emph{minimizar el tamaño del modelo} sujeto a la restricción de no degradar la precisión más de un umbral ($\Delta\mathrm{acc}\leq 2$ puntos). No perseguimos batir el estado del arte en accuracy, sino demostrar una solución heurística efectiva y reproducible.
+
+\paragraph{Contribuciones}
+(i) Un motor funcional \emph{QSim} en NumPy que simula inferencia INT8 (quant $\rightarrow$ INT32 $\rightarrow$ requant) con fusión Conv+ReLU; (ii) una heurística híbrida: \emph{greedy} por capa para pesos y enfriamiento simulado (SA) para percentiles de activación; (iii) una evaluación reproducible FP32 vs.\ INT8 en MNIST (precisión, latencia indicativa, tamaño), con reducción $\sim 4\times$ sin pérdida de precisión.

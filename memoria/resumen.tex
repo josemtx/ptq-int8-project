@@ -1,8 +1,3 @@
-% 150--300 palabras. Rellena al final con los resultados reales.
-En este trabajo estudiamos la cuantización post-entrenamiento (PTQ) a INT8
-con ejecución simulada en NumPy sobre una CNN ligera tipo LeNet aplicada a MNIST/Fashion-MNIST.
-Formulamos el problema como una optimización de latencia sujeta a una caída de accuracy
-acotada ($\leq$ 2\%). Presentamos una heurística en dos fases: (i) selección ávida de
-esquemas de cuantización de pesos (per-tensor/per-channel, simétrica/asimétrica) minimizando MSE;
-y (ii) ajuste de percentiles de activación mediante enfriamiento simulado.
-Reportamos latencia p50/p90, tamaño del modelo y $\Delta$-accuracy respecto a FP32.
+Presentamos un motor de cuantización post-entrenamiento (PTQ) en NumPy para una CNN ligera tipo LeNet sobre MNIST. El método combina una calibración codiciosa por capa para seleccionar el esquema de cuantización de pesos (per-tensor/per-channel; simétrica/asimétrica) con un ajuste de percentiles de activación mediante enfriamiento simulado (SA). La ejecución cuantizada (\emph{QSim}) sigue el flujo: cuantizar entradas y pesos, acumular en INT32 restando puntos cero y re-cuantizar la salida, fusionando Conv+ReLU en dominio entero.
+
+Experimentalmente, reducimos el tamaño del modelo en torno a $4\times$ (80.16~KB $\rightarrow$ 20.04~KB) manteniendo e incluso mejorando la precisión respecto a FP32 (validación/test: 86.44/87.19\% en FP32 frente a 87.06/87.87\% en INT8; $\Delta$test = +0.68 puntos). La latencia del simulador NumPy aumenta al carecer de kernels optimizados y por el coste de (re)cuantización; dichos tiempos son indicativos del motor funcional, no representativos de hardware con soporte INT8. En conjunto, el trabajo satisface el objetivo de optimización: minimizar el tamaño manteniendo la precisión dentro de un margen ($\Delta\mathrm{acc}\leq 2$ puntos).

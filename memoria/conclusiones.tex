@@ -1,4 +1,5 @@
-Presentamos una implementación educativa de PTQ a INT8 en NumPy y una heurística eficiente para
-calibración. Los resultados muestran reducciones sustanciales en tamaño y latencia con degradación
-de precisión acotada. Como trabajo futuro, exploraremos QAT, INT4 y planificación por capa dependiente
-del dispositivo.
+\paragraph{Conclusiones}
+La combinación de PTQ y heurísticas simples (\emph{greedy} por capa + SA en percentiles) reduce el tamaño del modelo $\sim 4\times$ y mantiene la precisión, llegando incluso a mejorarla ligeramente en MNIST (en test, $\Delta=+0.68$ puntos respecto a FP32). La simulación en NumPy, orientada a validar la corrección funcional INT8 (acumulación en 32 bits y re-cuantización), muestra latencias superiores por carecer de kernels optimizados; esto no contradice la literatura, donde INT8 acelera sobre backends adecuados.
+
+\paragraph{Trabajo futuro}
+(i) Vectorizar convoluciones con \emph{im2col}+GEMM o emplear BLAS para medir latencias más realistas; (ii) extender a QAT y/o INT4; (iii) explorar búsqueda más eficiente de percentiles (p.\,ej., Bayesiana) y métricas mixtas precisión–latencia como función objetivo.

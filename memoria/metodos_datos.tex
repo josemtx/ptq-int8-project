@@ -1,11 +1,23 @@
-\subsection*{Cuantización uniforme afín}
-Dado un tensor real $x$, su cuantización $x_q$ a $b$ bits se define como:
-\[ x_q = \mathrm{clip}\big(\mathrm{round}(x/s) + z,\; q_{\min}, q_{\max}\big), \quad
-   x \approx s \cdot (x_q - z) \]
-con escala $s>0$ y punto cero $z$ entero. Consideramos variantes simétrica ($z=0$) y
-asimétrica, y para pesos tanto por-tensor como por-canal.
+\subsection*{Cuantización afín y ejecución entera}
+Dado un tensor real $x$, su cuantización uniforme afín a $b$ bits se define como
+\[
+x_q=\operatorname{clip}\!\left(\operatorname{round}\!\left(\frac{x}{s_x}\right)+z_x,\;q_{\min},q_{\max}\right),\qquad
+x\approx s_x\,(x_q-z_x),
+\]
+con escala $s_x>0$ y punto cero entero $z_x$. Para pesos $w$ usamos representación con signo (INT8). La operación lineal se acumula en 32 bits restando puntos cero:
+\[
+y_{32}=\sum (x_q - z_x)\,(w_q - z_w) + b_{32},
+\]
+y se re-cuantiza a la salida
+\[
+y_q=\operatorname{clip}\!\left(\left\lfloor y_{32}\,\frac{s_x s_w}{s_y}\right\rceil + z_y,\;q_{\min},q_{\max}\right),\qquad
+y\approx s_y\,(y_q-z_y).
+\]
+Empleamos variantes de pesos \emph{per-tensor} y \emph{per-channel} (por canal de salida) y activaciones simétricas o asimétricas. Tras ReLU usamos activaciones sin signo; para los \emph{logits} empleamos activación con signo y simétrica.
+
+\subsection*{Heurística de calibración}
+\textbf{Greedy por capa (pesos).} Para cada capa probamos $\{\text{per-tensor},\text{per-channel}\}\times\{\text{simétrica},\text{asimétrica}\}$ y elegimos la que minimiza la MSE de la salida con datos de calibración.\\
+\textbf{Ajuste de percentiles (activaciones).} Inicializamos con percentil $p=99.0$ por tensor y ejecutamos SA sobre los $p$ por capa (vecindario $\pm\Delta p$, enfriamiento geométrico), maximizando accuracy en validación con restricción dura $\Delta\mathrm{acc}\leq 2$ puntos.
 
 \subsection*{Datos y arquitectura}
-Usaremos MNIST o Fashion-MNIST y una red tipo LeNet-lite (dos convoluciones con
-ReLU y MaxPool seguidas de dos capas lineales). Las activaciones se calibran con
-estadísticas de validación.
+Usamos MNIST (imágenes $28{\times}28$ en escala de grises). La red es una LeNet-lite: Conv($1{\rightarrow}8$, $5{\times}5$) + ReLU + MaxPool(2) $\rightarrow$ Conv($8{\rightarrow}16$, $5{\times}5$) + ReLU + MaxPool(2) $\rightarrow$ FC($256{\rightarrow}64$) + ReLU $\rightarrow$ FC($64{\rightarrow}10$).

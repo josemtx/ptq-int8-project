@@ -1,3 +1,8 @@
+\subsection*{Descripción}
+El motor QSim separa: (i) ajuste de parámetros de cuantización (pesos y activaciones) y (ii) ejecución. Para pesos, \texttt{fit\_weight\_qparams} calcula escalas/puntos cero per-tensor o per-channel y \texttt{quantize\_weights} produce pesos INT8. Para activaciones, \texttt{fit\_act\_qparams} usa rangos por percentil. La ejecución cuantizada acumula en INT32 (restando puntos cero) y re-cuantiza a la salida con la razón $(s_x s_w)/s_y$, fusionando Conv+ReLU en dominio cuantizado.
+
+El siguiente pseudocódigo resume la calibración greedy de pesos, el ajuste SA de activaciones y el forward cuantizado con fusión:
+
 \subsection*{Calibración de pesos (greedy por capa)}
 \begin{algorithm}[H]
 \caption{CALIBRATE\_WEIGHTS}
