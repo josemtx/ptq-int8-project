@@ -6,7 +6,7 @@ Compararemos FP32 vs.\ INT8 (QSim) en validación y test. La \emph{latencia} se 
 
 \subsection*{Resultados principales}
 
-\begin{table}[h]
+\begin{table}[H]
 \centering
 \caption{Comparativa FP32 vs.\ INT8 (QSim) en MNIST.}
 \begin{tabular}{lrrrr}
@@ -19,44 +19,54 @@ INT8-QSim & 87.06 & 87.87 & 6316.4 & 20.04 KB \\
 \end{tabular}
 \end{table}
 
+\FloatBarrier
+
 \subsection*{Discusión}
 La PTQ con ajuste de percentiles mediante SA mantiene la precisión e incluso mejora ligeramente la generalización respecto a FP32 (en test, $\Delta=+0.68$ puntos), a la vez que reduce el tamaño $\sim 4\times$ (80.16~KB $\rightarrow$ 20.04~KB). La ganancia marginal de precisión se interpreta como un efecto de regularización por \emph{clipping} de valores extremos inducido por la cuantización.
 
 La latencia del simulador en NumPy aumenta por (i) ausencia de kernels optimizados (convoluciones con bucles) y (ii) coste adicional de cuantizar/decuantizar y re-cuantizar. Estos tiempos son \emph{indicativos del motor funcional}, no del rendimiento en hardware con soporte INT8 o librerías BLAS, donde cabe esperar aceleración. El objetivo del trabajo —minimizar tamaño con restricción de precisión— queda satisfecho holgadamente.
 
+\FloatBarrier
+
 \subsection*{Matrices de confusión (visiones globales)}
 \IfFileExists{../results/figuras/confusion_fp32.png}{
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
 \includegraphics[width=.45\linewidth]{../results/figuras/confusion_fp32.png}\hfill
 \includegraphics[width=.45\linewidth]{../results/figuras/confusion_int8.png}
-\caption{Matriz de confusión en test para FP32 (izquierda) e INT8-QSim (derecha). Ambas se muestran normalizadas por clase (por fila). Visualmente son muy similares, lo que apoya que la precisión global se mantiene tras cuantizar.}
+\caption{Matriz de confusión en test para FP32 (izquierda) e INT8-QSim (derecha), normalizadas por clase. La diagonal intensa en ambos casos indica que la pauta de aciertos se mantiene tras cuantizar (no aparecen errores nuevos dominantes).}
 \end{figure}
 }{
 \noindent\emph{(Figura pendiente: genere las matrices con \texttt{make\_confusions\_extras.py}.)}
 }
 
+\FloatBarrier
+
 \subsection*{Mapa de diferencias (INT8 $-$ FP32)}
 \IfFileExists{../results/figuras/confusion_delta.png}{
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
-\includegraphics[width=.7\linewidth]{../results/figuras/confusion_delta.png}
-\caption{Diferencias normalizadas por clase entre INT8 y FP32. Rojo: aumenta la proporción en INT8; azul: disminuye. El patrón es contenido y local: se observan leves cambios en confusiones de \texttt{3$\rightarrow$?} y \texttt{7$\rightarrow$?}, y una variación más marcada en la clase \texttt{9} hacia \texttt{4}/\texttt{9}, coherente con la caída por-clase vista abajo.}
+\includegraphics[width=.72\linewidth]{../results/figuras/confusion_delta.png}
+\caption{Diferencias normalizadas por clase entre INT8 y FP32. Rojo: aumenta esa proporción en INT8; azul: disminuye. El patrón es contenido y local (pocas celdas alejadas de la diagonal), lo que indica que la cuantización modifica muy levemente el perfil de confusiones.}
 \end{figure}
 }{
 \noindent\emph{(Figura pendiente: genere \texttt{confusion\_delta.png} con \texttt{make\_confusions\_extras.py}.)}
 }
 
+\FloatBarrier
+
 \subsection*{Accuracy por clase}
 \IfFileExists{../results/figuras/acc_por_clase.png}{
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
 \includegraphics[width=.85\linewidth]{../results/figuras/acc_por_clase.png}
-\caption{Accuracy por clase (FP32 vs.\ INT8). Las diferencias son pequeñas en la mayoría de clases (0--8), con una caída apreciable en la clase \texttt{9}. Este análisis fino complementa la métrica global: INT8 mantiene el rendimiento en casi todas las clases y la ligera degradación en \texttt{9} no afecta al promedio, que incluso mejora tras SA.}
+\caption{Accuracy por clase (FP32 vs.\ INT8). La mayor parte de clases (0--8) queda prácticamente inalterada; la clase \texttt{9} muestra la caída más visible. Aun así, el promedio global no empeora (con SA incluso mejora ligeramente).}
 \end{figure}
 }{
 \noindent\emph{(Figura pendiente: genere \texttt{acc\_por\_clase.png} con \texttt{make\_confusions\_extras.py}.)}
 }
 
+\FloatBarrier
+
 \paragraph{Comentario breve.}
-El mapa $\Delta$ y las barras por clase permiten “ver” dónde actúa la cuantización: la mayor parte de filas permanece prácticamente inalterada; los cambios se concentran en muy pocos pares real$\rightarrow$predicho. Los \emph{top} cambios normalizados (archivo \texttt{results/tablas/top\_confusiones.csv}) son pequeños en magnitud absoluta y compatibles con el efecto de \emph{clipping} de activaciones: se atenúan ocasionalmente confusiones \emph{outlier} y se desplaza levemente el error en clases difíciles (p.\,ej., \texttt{9}). En conjunto, el análisis microscópico refuerza la conclusión macroscópica: la PTQ con SA reduce tamaño sin comprometer la precisión.
+El mapa $\Delta$ y las barras por clase permiten localizar el impacto de la cuantización: la mayoría de filas permanece casi igual, y las variaciones se concentran en pocos pares real$\rightarrow$predicho (ligera sensibilidad en \texttt{9}). Esto es coherente con el efecto de \emph{clipping} de activaciones y refuerza la conclusión global: se alcanza reducción de tamaño sin penalizar la precisión.
