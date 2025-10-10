@@ -24,12 +24,12 @@ La PTQ con ajuste de percentiles mediante SA mantiene la precisión e incluso me
 
 La latencia del simulador en NumPy aumenta por (i) ausencia de kernels optimizados (convoluciones con bucles) y (ii) coste adicional de cuantizar/decuantizar y re-cuantizar. Estos tiempos son \emph{indicativos del motor funcional}, no del rendimiento en hardware con soporte INT8 o librerías BLAS, donde cabe esperar aceleración. El objetivo del trabajo —minimizar tamaño con restricción de precisión— queda satisfecho holgadamente.
 
-\subsection*{Matriz de confusión}
-A continuación se muestran las matrices de confusión para FP32 e INT8-QSim sobre el conjunto de test.
+% \subsection*{Matriz de confusión}
+% A continuación se muestran las matrices de confusión para FP32 e INT8-QSim sobre el conjunto de test.
+% \begin{figure}[h]
+% \centering
+% \includegraphics[width=.45\linewidth]{../results/figuras/confusion_fp32.png}\hfill
+% \includegraphics[width=.45\linewidth]{../results/figuras/confusion_int8.png}
+% \caption{Matriz de confusión en test para FP32 (izquierda) e INT8-QSim (derecha).}
+% \end{figure}
 
-\begin{figure}[h]
-\centering
-\includegraphics[width=.45\linewidth]{../results/figuras/confusion_fp32.png}\hfill
-\includegraphics[width=.45\linewidth]{../results/figuras/confusion_int8.png}
-\caption{Matriz de confusión en test para FP32 (izquierda) e INT8-QSim (derecha).}
-\end{figure}
