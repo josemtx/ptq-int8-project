@@ -24,7 +24,7 @@ jobs:
         with:
           working_directory: memoria
           root_file: main.tex
-          args: -pdf -interaction=nonstopmode -halt-on-error -use-biber
+          args: -pdf -interaction=nonstopmode -halt-on-error
       - name: Upload PDF
         uses: actions/upload-artifact@v4
         with:
