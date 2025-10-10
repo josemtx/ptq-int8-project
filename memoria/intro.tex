@@ -6,4 +6,4 @@ Planteamos un problema de optimización: \emph{minimizar el tamaño del modelo} 
 
 \paragraph{Contribuciones}
 (i) Un motor funcional \emph{QSim} en NumPy que simula inferencia INT8 (quant $\rightarrow$ INT32 $\rightarrow$ requant) con fusión Conv+ReLU; (ii) una heurística híbrida: \emph{greedy} por capa para pesos y enfriamiento simulado (SA) para percentiles de activación; (iii) una evaluación reproducible FP32 vs.\ INT8 en MNIST (precisión, latencia indicativa, tamaño), con reducción $\sim 4\times$ sin pérdida de precisión.
-Véase \citep{Jacob2018CVPR,Krishnamoorthi2018Whitepaper} para antecedentes de PTQ y \citep{LeCun1998ProcIEEE,MNIST} para el conjunto MNIST.
+Véase \parencite{Jacob2018CVPR,Krishnamoorthi2018Whitepaper} para antecedentes de PTQ y \parencite{LeCun1998ProcIEEE,MNIST} para el conjunto MNIST.
