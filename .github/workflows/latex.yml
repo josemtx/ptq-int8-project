@@ -24,9 +24,7 @@ jobs:
         with:
           working_directory: memoria
           root_file: main.tex
-          latexmk_use_lualatex: false
-          latexmk_shell_escape: false
-
+          args: -pdf -interaction=nonstopmode -halt-on-error -use-biber
       - name: Upload PDF
         uses: actions/upload-artifact@v4
         with:

@@ -7,13 +7,77 @@
 \usepackage[hidelinks]{hyperref}
 \usepackage{caption}
 \usepackage{subcaption}
-\usepackage[numbers,sort&compress]{natbib}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage[english,spanish]{babel}
 \AtBeginDocument{\selectlanguage{spanish}}
+
+% ---- Bibliografía con biblatex (biber) ----
+\usepackage[backend=biber,style=authoryear,sorting=nyt,language=spanish]{biblatex}
+\addbibresource{refs.bib}
+
+% Alias de nombres (Apellido, Nombre)
+\DeclareNameAlias{author}{family-given}
+
+% Formatos básicos
+\DeclareFieldFormat[article]{journaltitle}{#1}
+\DeclareFieldFormat[inproceedings]{booktitle}{#1}
+\DeclareFieldFormat{title}{#1}
+\DeclareFieldFormat{pages}{#1}
+
+% Separadores
+\newcommand{\bibsepcomma}{, }
+\newcommand{\parenopen}{(}
+\newcommand{\parenclose}{)}
+
+% Driver para ARTICLE
+\DeclareBibliographyDriver{article}{%
+  \printtext{\parenopen}%
+  \printnames{author}\bibsepcomma
+  \printfield[title]{title}\bibsepcomma
+  \printfield[journaltitle]{journaltitle}%
+  \iffieldundef{volume}{}{\bibsepcomma \printfield{volume}}%
+  \iffieldundef{pages}{}{\bibsepcomma \printfield{pages}}%
+  \iffieldundef{year}{}{\bibsepcomma \printfield{year}}%
+  \printtext{\parenclose}%
+  \finentry
+}
+
+% Driver para INPROCEEDINGS
+\DeclareBibliographyDriver{inproceedings}{%
+  \printtext{\parenopen}%
+  \printnames{author}\bibsepcomma
+  \printfield[title]{title}\bibsepcomma
+  \printfield[booktitle]{booktitle}%
+  \iffieldundef{volume}{}{\bibsepcomma \printfield{volume}}%
+  \iffieldundef{pages}{}{\bibsepcomma \printfield{pages}}%
+  \iffieldundef{year}{}{\bibsepcomma \printfield{year}}%
+  \printtext{\parenclose}%
+  \finentry
+}
+
+% Driver para MISC/ONLINE/ARXIV (usa howpublished o url si no hay venue)
+\DeclareBibliographyDriver{misc}{%
+  \printtext{\parenopen}%
+  \printnames{author}\bibsepcomma
+  \printfield[title]{title}\bibsepcomma
+  \iffieldundef{howpublished}
+    {\iffieldundef{url}{}{\printfield{url}}}
+    {\printfield{howpublished}}%
+  \iffieldundef{volume}{}{\bibsepcomma \printfield{volume}}%
+  \iffieldundef{pages}{}{\bibsepcomma \printfield{pages}}%
+  \iffieldundef{year}{}{\bibsepcomma \printfield{year}}%
+  \printtext{\parenclose}%
+  \finentry
+}
+\DeclareBibliographyAlias{online}{misc}
+\DeclareBibliographyAlias{report}{misc}
+\DeclareBibliographyAlias{unpublished}{misc}
+
+% Pequeños ajustes lingüísticos
+\DefineBibliographyStrings{spanish}{andothers={et al.}}
 
 
 \title{Cuantización Post-Entrenamiento a INT8 con Ejecución Simulada en NumPy}
@@ -48,6 +112,5 @@
 \section{Conclusiones y Trabajo Futuro}
 \input{conclusiones.tex}
 
-\bibliographystyle{abbrvnat}
-\bibliography{refs}
+\printbibliography[title={Referencias}]
 \end{document}
