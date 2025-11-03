@@ -1,5 +1,5 @@
 \subsection*{Protocolo}
-Compararemos FP32 vs.\ INT8 (QSim) en validación y test. La \emph{latencia} se mide como media (y, cuando corresponda, p50/p90) sobre $N$ repeticiones en la misma máquina. Se reporta además el \emph{tamaño del modelo}. Nuestro objetivo de optimización es reducir tamaño bajo la restricción de no degradar la precisión más de $\leq 2$ puntos.
+Compararemos FP32 vs.\ INT8 (QSim) en validación y test. La \emph{latencia} se mide como media sobre $N$ repeticiones en la misma máquina. Se reporta además el \emph{tamaño del modelo}. Nuestro objetivo de optimización es reducir tamaño bajo la restricción de no degradar la precisión más de $\leq 2$ puntos.
 
 \subsection*{Metodología de medida}
 Cada resultado se repite $N{=}10$ veces con el mismo hardware. La latencia reporta la media (y p50/p90 cuando aplica). La simulación INT8 se ejecuta en NumPy sin kernels optimizados; por tanto, las latencias son indicativas del motor funcional, no del rendimiento esperado en hardware con soporte INT8. Se fija el conjunto de calibración (512 imágenes) y el de validación/test para asegurar comparabilidad entre configuraciones.
