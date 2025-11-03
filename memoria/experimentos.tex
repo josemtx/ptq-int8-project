@@ -1,6 +1,9 @@
 \subsection*{Protocolo}
 Compararemos FP32 vs.\ INT8 (QSim) en validación y test. La \emph{latencia} se mide como media (y, cuando corresponda, p50/p90) sobre $N$ repeticiones en la misma máquina. Se reporta además el \emph{tamaño del modelo}. Nuestro objetivo de optimización es reducir tamaño bajo la restricción de no degradar la precisión más de $\leq 2$ puntos.
 
+\subsection*{Metodología de medida}
+Cada resultado se repite $N{=}10$ veces con el mismo hardware. La latencia reporta la media (y p50/p90 cuando aplica). La simulación INT8 se ejecuta en NumPy sin kernels optimizados; por tanto, las latencias son indicativas del motor funcional, no del rendimiento esperado en hardware con soporte INT8. Se fija el conjunto de calibración (512 imágenes) y el de validación/test para asegurar comparabilidad entre configuraciones.
+
 \subsection*{Ablaciones}
 (i) \emph{per-tensor} vs.\ \emph{per-channel} (pesos); (ii) simétrica vs.\ asimétrica (activaciones); (iii) percentil fijo vs.\ SA (enfriamiento simulado); (iv) con/sin fusión Conv+ReLU.
 
@@ -9,6 +12,7 @@ Compararemos FP32 vs.\ INT8 (QSim) en validación y test. La \emph{latencia} se 
 \begin{table}[H]
 \centering
 \caption{Comparativa FP32 vs.\ INT8 (QSim) en MNIST.}
+\label{tab:main}
 \begin{tabular}{lrrrr}
 \toprule
 Modo & Val (\%) & Test (\%) & Mean (ms) & Tamaño \\
@@ -22,49 +26,57 @@ INT8-QSim & 87.06 & 87.87 & 6316.4 & 20.04 KB \\
 \FloatBarrier
 
 \subsection*{Discusión}
-La PTQ con ajuste de percentiles mediante SA mantiene la precisión e incluso mejora ligeramente la generalización respecto a FP32 (en test, $\Delta=+0.68$ puntos), a la vez que reduce el tamaño $\sim 4\times$ (80.16~KB $\rightarrow$ 20.04~KB). La ganancia marginal de precisión se interpreta como un efecto de regularización por \emph{clipping} de valores extremos inducido por la cuantización.
+Como se observa en la Tabla~\ref{tab:main}, la PTQ con ajuste de percentiles mediante SA mantiene la precisión e incluso mejora ligeramente la generalización respecto a FP32 (en test, $\Delta=+0.68$ puntos), a la vez que reduce el tamaño $\sim 4\times$ (80.16~KB $\rightarrow$ 20.04~KB). La latencia del simulador NumPy aumenta por (i) ausencia de kernels optimizados (convoluciones con bucles) y (ii) coste adicional de cuantizar/decuantizar y re-cuantizar; estos tiempos son \emph{indicativos del motor funcional}, no del rendimiento en hardware con soporte INT8 o BLAS.
 
-La latencia del simulador en NumPy aumenta por (i) ausencia de kernels optimizados (convoluciones con bucles) y (ii) coste adicional de cuantizar/decuantizar y re-cuantizar. Estos tiempos son \emph{indicativos del motor funcional}, no del rendimiento en hardware con soporte INT8 o librerías BLAS, donde cabe esperar aceleración. El objetivo del trabajo —minimizar tamaño con restricción de precisión— queda satisfecho holgadamente.
+Las Figuras~\ref{fig:conf} y~\ref{fig:delta} muestran que el patrón de aciertos/errores apenas cambia tras cuantizar: las diferencias (INT8$-$FP32) son locales y de pequeña magnitud. La Figura~\ref{fig:perclass} confirma que la precisión por clase permanece estable para la mayoría de dígitos (0--8), con una caída más visible en la clase \texttt{9}, que no impide mantener (o mejorar levemente) el promedio global. Finalmente, la Tabla~\ref{tab:ablation} evidencia que el ajuste por SA recupera/eleva precisión frente a un percentil fijo.
 
 \FloatBarrier
 
 \subsection*{Matrices de confusión (visiones globales)}
-\IfFileExists{../results/figuras/confusion_fp32.png}{
 \begin{figure}[H]
 \centering
 \includegraphics[width=.45\linewidth]{../results/figuras/confusion_fp32.png}\hfill
 \includegraphics[width=.45\linewidth]{../results/figuras/confusion_int8.png}
 \caption{Matriz de confusión en test para FP32 (izquierda) e INT8-QSim (derecha), normalizadas por clase. La diagonal intensa en ambos casos indica que la pauta de aciertos se mantiene tras cuantizar (no aparecen errores nuevos dominantes).}
+\label{fig:conf}
 \end{figure}
-}{
-\noindent\emph{(Figura pendiente: genere las matrices con \texttt{make\_confusions\_extras.py}.)}
-}
 
 \FloatBarrier
 
 \subsection*{Mapa de diferencias (INT8 $-$ FP32)}
-\IfFileExists{../results/figuras/confusion_delta.png}{
 \begin{figure}[H]
 \centering
 \includegraphics[width=.72\linewidth]{../results/figuras/confusion_delta.png}
 \caption{Diferencias normalizadas por clase entre INT8 y FP32. Rojo: aumenta esa proporción en INT8; azul: disminuye. El patrón es contenido y local (pocas celdas alejadas de la diagonal), lo que indica que la cuantización modifica muy levemente el perfil de confusiones.}
+\label{fig:delta}
 \end{figure}
-}{
-\noindent\emph{(Figura pendiente: genere \texttt{confusion\_delta.png} con \texttt{make\_confusions\_extras.py}.)}
-}
 
 \FloatBarrier
 
 \subsection*{Accuracy por clase}
-\IfFileExists{../results/figuras/acc_por_clase.png}{
 \begin{figure}[H]
 \centering
 \includegraphics[width=.85\linewidth]{../results/figuras/acc_por_clase.png}
 \caption{Accuracy por clase (FP32 vs.\ INT8). La mayor parte de clases (0--8) queda prácticamente inalterada; la clase \texttt{9} muestra la caída más visible. Aun así, el promedio global no empeora (con SA incluso mejora ligeramente).}
+\label{fig:perclass}
 \end{figure}
-}{
-\noindent\emph{(Figura pendiente: genere \texttt{acc\_por\_clase.png} con \texttt{make\_confusions\_extras.py}.)}
-}
+
+\FloatBarrier
+
+\subsection*{Ablación mínima}
+\begin{table}[H]
+\centering
+\caption{Ablación: efecto del ajuste de percentiles por SA frente a percentil fijo (p=99).}
+\label{tab:ablation}
+\begin{tabular}{lrr}
+\toprule
+Configuración & Val (\%) & Test (\%) \\
+\midrule
+Pesos greedy + Acts p{=}99 (init) & 84.68 & 85.12 \\
+Pesos greedy + Acts SA            & 87.06 & 87.87 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \FloatBarrier
 

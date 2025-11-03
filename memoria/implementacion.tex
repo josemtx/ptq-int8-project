@@ -1,11 +1,39 @@
 \subsection*{Descripción}
-El motor QSim separa: (i) ajuste de parámetros de cuantización (pesos y activaciones) y (ii) ejecución. Para pesos, \texttt{fit\_weight\_qparams} calcula escalas/puntos cero per-tensor o per-channel y \texttt{quantize\_weights} produce pesos INT8. Para activaciones, \texttt{fit\_act\_qparams} usa rangos por percentil. La ejecución cuantizada acumula en INT32 (restando puntos cero) y re-cuantiza a la salida con la razón $(s_x s_w)/s_y$, fusionando Conv+ReLU en dominio cuantizado.
+El motor QSim separa: (i) ajuste de parámetros de cuantización (pesos y activaciones) y (ii) ejecución. Para pesos, \texttt{fit\_weight\_qparams} calcula escalas/puntos cero \emph{per-tensor} o \emph{per-channel} y \texttt{quantize\_weights} produce pesos INT8. Para activaciones, \texttt{fit\_act\_qparams} usa rangos por percentil. La ejecución cuantizada acumula en INT32 (restando puntos cero) y re-cuantiza a la salida con la razón $(s_x s_w)/s_y$, fusionando Conv+ReLU en dominio cuantizado.
 
-El siguiente pseudocódigo resume la calibración greedy de pesos, el ajuste SA de activaciones y el forward cuantizado con fusión:
+Los Algoritmos~\ref{alg:calib_weights}--\ref{alg:qsim_forward} resumen la calibración greedy de pesos, el ajuste por enfriamiento simulado (SA) de activaciones y el \emph{forward} cuantizado con fusión.
+
+\subsection*{Correspondencia ecuaciones $\leftrightarrow$ implementación}
+\begin{itemize}
+  \item \textbf{Cuantización afín de entradas/activaciones} ($x_q=\operatorname{clip}(\lfloor x/s_x \rceil + z_x,\;q_{\min},q_{\max})$, $x\!\approx\! s_x(x_q\!-\!z_x)$):
+  \texttt{quantize} y \texttt{dequantize} en \texttt{src/quantizer.py}. En el motor, se aplican al inicio de cada capa usando los \emph{qparams} de activación (\texttt{act\_in/act\_out}).
+
+  \item \textbf{Cuantización de pesos} (INT8 con signo; \emph{per-tensor}/\emph{per-channel}):
+  \texttt{fit\_weight\_qparams} y \texttt{quantize\_weights} en \texttt{src/quantizer.py}. Para \emph{per-channel} las escalas son vectoriales por canal de salida; en el requant se re-dimensionan para difundir sobre el mapa de activación.
+
+  \item \textbf{Acumulación entera en 32 bits} ($y_{32}=\sum (x_q-z_x)(w_q-z_w)+b_{32}$):
+  \texttt{conv2d\_int} y \texttt{linear\_int} en \texttt{src/qsim\_engine.py}. Restan $z_x,z_w$ antes del producto y acumulan en \texttt{int32}. El sesgo se maneja en entero (\texttt{bias\_int32}); en nuestra simulación se fija a cero efectivo para centrarnos en el flujo de cuantización.
+
+  \item \textbf{Re-cuantización de salida} ($y_q=\operatorname{clip}(\lfloor y_{32}\,(s_x s_w)/s_y \rceil + z_y,\;q_{\min},q_{\max})$):
+  \texttt{requantize\_int32} en \texttt{src/qsim\_engine.py}. Aplica la razón de escalas $(s_x s_w)/s_y$ y el punto cero $z_y$. Para pesos \emph{per-channel}, la escala $s_w$ se difunde como tensor $(1,\text{OC},1,1)$ (conv) o $(1,\text{Fout})$ (lineal), de acuerdo al \emph{broadcast} de NumPy.
+
+  \item \textbf{Fusión Conv+ReLU en cuantizado}:
+  en \texttt{QSimConvReLU.forward}, tras obtener $y_q$ se aplica $\max(y_q,z_y)$, que equivale a ReLU en entero (cualquier valor por debajo del \emph{zero-point} se satura al propio $z_y$).
+
+  \item \textbf{Logits con signo y simetría}:
+  la salida final (\emph{logits}) usa activación con signo y simétrica para permitir valores positivos/negativos alrededor de cero antes de \texttt{softmax}.
+
+  \item \textbf{Selección heurística de configuraciones (\emph{greedy})}:
+  \texttt{calibrate\_weights\_greedy} (en \texttt{src/calibrator.py}) prueba $\{\text{per-tensor},\text{per-channel}\}\times\{\text{simétrica},\text{asimétrica}\}$ por capa y elige la que minimiza el error a la salida de la capa con datos de calibración (MSE/val).
+
+  \item \textbf{Ajuste fino de percentiles (SA)}:
+  \texttt{tune\_percentiles\_SA} explora $p$ por capa (vecindario $\pm\Delta p$ con enfriamiento geométrico), maximizando \emph{accuracy} en validación y respetando una restricción de caída máxima (p.\,ej., $\Delta\mathrm{acc}\leq 2$).
+\end{itemize}
 
 \subsection*{Calibración de pesos (greedy por capa)}
 \begin{algorithm}[H]
 \caption{CALIBRATE\_WEIGHTS}
+\label{alg:calib_weights}
 \begin{algorithmic}[1]
 \Require Lista de capas $L$, datos de calibración $D_{cal}$
 \For{cada capa $L_i$ con pesos}
@@ -25,6 +53,7 @@ El siguiente pseudocódigo resume la calibración greedy de pesos, el ajuste SA 
 \subsection*{Calibración de activaciones (enfriamiento simulado)}
 \begin{algorithm}[H]
 \caption{CALIBRATE\_ACTS\_SA}
+\label{alg:calib_acts_sa}
 \begin{algorithmic}[1]
 \Require Red $N$, $D_{cal}$, $D_{val}$, $\lambda$, $T_0$, $T_{min}$
 \State $p \gets$ percentiles iniciales (p.\,ej., 99.0)
@@ -44,6 +73,7 @@ El siguiente pseudocódigo resume la calibración greedy de pesos, el ajuste SA 
 \subsection*{Forward cuantizado con fusión Conv+ReLU}
 \begin{algorithm}[H]
 \caption{QSIM\_FORWARD}
+\label{alg:qsim_forward}
 \begin{algorithmic}[1]
 \Require Red $N$, entrada $x$
 \For{cada capa $L$ en $N$}
