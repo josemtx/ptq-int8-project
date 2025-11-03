@@ -104,8 +104,15 @@
 \end{abstract}
 
 \tableofcontents
-\listoffigures
-\listoftables
+
+% Mantener juntas las listas (anula \clearpage temporalmente)
+\begingroup
+  \let\origclearpage\clearpage
+  \let\clearpage\relax
+  \listoffigures
+  \listoftables
+  \let\clearpage\origclearpage
+\endgroup
 
 \section{Introducción}
 \input{intro.tex}
