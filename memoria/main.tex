@@ -16,6 +16,14 @@
 \usepackage[section]{placeins} % no deja que los flotantes se salgan de su sección
 \AtBeginDocument{\selectlanguage{spanish}}
 
+% ---- Que cada \section empiece en página nueva (sin romper la primera) ----
+\usepackage{etoolbox}
+\newbool{firstsection}
+\setbool{firstsection}{true}
+\pretocmd{\section}{%
+  \ifbool{firstsection}{\global\setbool{firstsection}{false}}{\clearpage}%
+}{}{}
+
 % ---- Bibliografía con biblatex (biber) ----
 \usepackage[backend=biber,style=authoryear,sorting=nyt,language=spanish]{biblatex}
 \addbibresource{refs.bib}
