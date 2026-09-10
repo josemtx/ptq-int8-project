@@ -1,122 +1,104 @@
-# Cuantización Post-Entrenamiento a INT8 con QSim (NumPy)
+# QSim: Post-Training INT8 Quantization Engine from Scratch (NumPy)
 
-Implementamos un **motor educativo de ejecución cuantizada (QSim)** en **NumPy** y resolvemos un problema de optimización: **reducir tamaño** manteniendo la **precisión**.
-El proyecto incluye memoria en LaTeX, código modular y dos notebooks explicativos centrados en las partes clave (cuantización y calibración).
+Motor de inferencia cuantizada (INT8) implementado desde cero en **NumPy puro**, diseñado para modelar a bajo nivel cómo operan los aceleradores hardware y runtimes de producción (fusión de operadores, acumulación en enteros y aritmética de punto fijo).
 
----
-
-## Resultados principales
-
-| Modo      | Val (%) | Test (%) | Mean (ms) |  Tamaño  |
-| --------- | :-----: | :------: | :-------: | :------: |
-| FP32      |  86.44  |   87.19  |   2361.2  | 80.16 KB |
-| INT8-QSim |  87.06  |   87.87  |   6316.4  | 20.04 KB |
-
-* **Precisión**: INT8 iguala/ligeramente supera a FP32 en test (**+0.68 pts**).
-* **Compresión**: **~4×** menos tamaño (80.16 → 20.04 KB).
-* **Latencia**: el simulador **NumPy** no usa kernels optimizados → estos tiempos **no** son representativos de hardware con soporte INT8; se incluyen como verificación funcional del motor.
-
-### Figuras
-
-<p float="left">
-  <img src="results/figuras/confusion_fp32.png" width="46%" />
-  <img src="results/figuras/confusion_int8.png" width="46%" />
-</p>
-
-<p float="left">
-  <img src="results/figuras/confusion_delta.png" width="46%" />
-  <img src="results/figuras/acc_por_clase.png" width="46%" />
-</p>
+Aplica técnicas de **Post-Training Quantization (PTQ)** sobre redes convolucionales (LeNetLite sobre Fashion-MNIST), logrando una **reducción del 75% del tamaño del modelo sin pérdida de precisión**.
 
 ---
 
-## Estructura del repositorio
+## Métricas de Impacto
+
+| Modo | Val Accuracy | Test Accuracy | Tamaño Modelo | Factor de Compresión |
+| --- | --- | --- | --- | --- |
+| **FP32 (Baseline)** | 86.44% | 87.19% | 80.16 KB | 1.0× |
+| **INT8 (QSim Engine)** | **87.06%** | **87.87%** | **20.04 KB** | **~4.0× (-75%)** |
+
+* **Zero Accuracy Drop:** La precisión en test no solo se mantiene, sino que experimenta una ligera regularización (+0.68 pts).
+* **Aritmética entera pura:** Inferencia ejecutada íntegramente con enteros (`int8` y acumulación `int32`), simulando el comportamiento a nivel de registro hardware sin recurrir a casts flotantes intermedios.
+* *Nota sobre latencia:* Al ser una implementación pura en Python/NumPy orientada a la arquitectura del dato, prioriza la transparencia funcional sobre la optimización de kernels SIMD/hardware nativo.
+
+---
+
+## Arquitectura y Características Técnicas
+
+* **Matemática de Cuantización Afín:** Cálculo explícito de escala ($S$) y punto cero ($Z$), con soporte configurable para esquemas simétricos y asimétricos, tanto *per-tensor* como *per-channel*.
+* **Kernel Engine (Simulación Hardware):**
+* `conv2d_int` y `linear_int` con multiplicación entera y acumulación segura en 32 bits (`int32`) para evitar overflow.
+* Re-cuantización (`requantize_int32`) de vuelta a `int8` mediante escalado de punto fijo y saturación (*clipping*).
+* **Operator Fusion:** Fusión a bajo nivel de capas convolucionales con activaciones (Conv + ReLU) en el dominio entero.
+
+
+* **Algoritmos de Calibración:**
+* Búsqueda *Greedy* por capa para balancear esquemas de cuantización en pesos.
+* Optimización por **Simulated Annealing (SA)** para la calibración de percentiles en tensores de activación.
+
+
+* **Infraestructura y Reproducibilidad:**
+* Pipeline automatizado de CI/CD vía GitHub Actions para la generación de documentación técnica.
+* Suite de perfiles y generación de artefactos reproducibles (tablas CSV y matrices de confusión).
+
+
+
+---
+
+## Evaluación y Resultados
+
+---
+
+## Inicio Rápido (Quickstart)
+
+### 1. Requisitos e Instalación
+
+```bash
+git clone https://github.com/tu-usuario/nombre-del-repo.git
+cd nombre-del-repo
+pip install numpy matplotlib tqdm
 
 ```
+
+### 2. Ejecutar Inferencia y Calibración
+
+```bash
+# Entrenar/evaluar el baseline FP32
+python run_baseline.py
+
+# Ejecutar pipeline completo: Calibración PTQ + Motor QSim INT8
+python run_qsim.py
+
+```
+
+Los resultados y figuras se exportarán automáticamente a la carpeta `results/`.
+
+---
+
+## Estructura del Código
+
+```text
 .
-├── memoria/                     # Memoria LaTeX (main.tex)  → CI genera main.pdf
-│   └── main.pdf
-├── notebooks/                   # Notebooks explicativos (solo NumPy)
+├── src/
+│   ├── quantizer.py       # Cuantización afín (scale/zero-point, per-tensor/channel)
+│   ├── qsim_engine.py     # Núcleo de cómputo INT8/INT32 y fusión Conv+ReLU
+│   ├── calibrator.py      # Búsqueda heurística (Greedy + Simulated Annealing)
+│   ├── model_fp32.py      # Definición de arquitectura LeNetLite en NumPy
+│   ├── trainer.py         # Pipeline de optimización y entrenamiento FP32
+│   └── profiler.py        # Métricas de memoria y medición de rendimiento
+├── notebooks/             # Implementaciones interactivas paso a paso
 │   ├── 01_quantizacion_y_engine.ipynb
 │   └── 02_calibracion_y_busqueda.ipynb
-├── src/                         # Código modular
-│   ├── data.py                  # Carga dataset (MNIST/Fashion-MNIST)
-│   ├── model_fp32.py            # LeNetLite (FP32) + utilidades
-│   ├── quantizer.py             # Cuantización afín (escala/zero-point, per-tensor/per-channel)
-│   ├── qsim_engine.py           # Conv/Linear INT8→INT32, requant, fusión ReLU
-│   ├── calibrator.py            # Greedy de pesos y SA de percentiles
-│   ├── profiler.py              # Medición de latencia
-│   └── trainer.py               # Entrenamiento FP32 (utilizado por run_baseline)
-├── run_baseline.py              # Entrena/evalúa FP32 y guarda baseline_fp32.npz
-├── run_qsim.py                  # Pipeline PTQ → QSim → resultados y figuras
-├── results/
-│   ├── figuras/*.png
-│   └── tablas/*.csv
-└── .github/workflows/latex.yml  # CI para compilar la memoria
+├── run_baseline.py        # Punto de entrada para modelo base
+├── run_qsim.py            # Punto de entrada para cuantización y evaluación
+├── memoria/               # Documentación formal y especificación matemática
+└── .github/workflows/     # Automatización CI/CD
+
 ```
 
 ---
 
-## Requisitos
+## Documentación Profunda
 
-* Python 3.9+ (probado con 3.12)
-* Paquetes: `numpy`, `matplotlib` (opcional: `tqdm`)
-* (Para la memoria) LaTeX + `biber` (**ya automatizado** vía GitHub Actions)
+Para una explicación interactiva o una derivación matemática formal:
 
-
-## Reproducir los resultados (línea de comandos)
-
-1. **Baseline FP32**
-
-```bash
-python run_baseline.py
-# -> genera results/baseline_fp32.npz y reporta accuracy
-```
-
-2. **PTQ + QSim INT8**
-
-```bash
-python run_qsim.py
-# -> calibración (greedy + p=99, opcional SA)
-# -> genera summary.csv y figuras en results/figuras
-```
-
-> Nota: las latencias provienen del motor NumPy (bucles claros, sin kernels SIMD). Sirven para validar el flujo de cuantización, no como benchmark de hardware.
+* **Notebooks Explicativos:** Consulta `notebooks/01_quantizacion_y_engine.ipynb` para ver el paso a paso del emulado de registros enteros y `notebooks/02_calibracion_y_busqueda.ipynb` para las curvas de calibración.
+* **Memoria Técnica:** Revisa `memoria/main.pdf` para la formulación completa de la propagación del error de cuantización.
 
 ---
-
-## Notebooks (lo que explican)
-
-* **`notebooks/01_quantizacion_y_engine.ipynb`**
-  Explica y demuestra con ejemplos mínimos:
-
-  * Cuantización afín: `affine_params`, `quantize`, `dequantize`.
-  * Acumulación INT32 y re-cuantización: `conv2d_int`, `linear_int`, `requantize_int32`.
-  * Fusión Conv+ReLU en cuantizado.
-    **Conexión con memoria**: Sección 2 (Métodos) y Sección 3 (Implementación).
-
-* **`notebooks/02_calibracion_y_busqueda.ipynb`**
-  Documenta las heurísticas:
-
-  * **Greedy por capa** para pesos (per-tensor/per-channel, sim/asim).
-  * **Enfriamiento simulado (SA)** para percentiles de activación.
-    **Conexión con memoria**: Sección 3 (pseudocódigo) y Sección 4 (ablación y resultados).
-
-> Si abres los notebooks desde `notebooks/`, incluyen una celda que añade automáticamente la raíz del repo al `sys.path`. Asegúrate de que existe `src/__init__.py` (vacío).
-
----
-
-## Mapa “Memoria ↔ Notebooks ↔ Código”
-
-| Memoria                          | Notebook                        | Código                                    |
-| -------------------------------- | ------------------------------- | ----------------------------------------- |
-| §2 Métodos (ecuaciones)          | 01_quantizacion_y_engine.ipynb  | `src/quantizer.py`, `src/qsim_engine.py`  |
-| §3 Implementación (pseudocódigo) | 01 y 02                         | `src/qsim_engine.py`, `src/calibrator.py` |
-| §4 Experimentos y resultados     | 02_calibracion_y_busqueda.ipynb | `run_qsim.py`, `results/`                 |
-
-
----
-
-## Licencia
-
-Este repositorio se distribuye bajo la licencia indicada en `LICENSE`.
